@@ -21,9 +21,9 @@ import numpy as np
 from numba import njit, prange
 from scipy.ndimage import map_coordinates
 
-from noise import fbm
-from pigments import layer
-from raster import blur
+from .noise import fbm
+from .pigments import layer
+from .raster import blur
 
 
 @njit(fastmath=True, inline='always')

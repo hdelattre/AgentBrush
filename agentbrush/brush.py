@@ -10,7 +10,7 @@ which `export` lights for the preview and bakes into the normal map.
 import numpy as np
 from numba import njit
 
-from noise import fbm
+from .noise import fbm
 
 # stroke parameter columns: half-width, alpha, paint load, dryness, smear,
 # thickness, edge roughness, bristle-table row, noise seed, end-cap softness,

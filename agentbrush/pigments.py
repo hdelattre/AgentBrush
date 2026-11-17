@@ -56,6 +56,13 @@ PIGMENTS = dict(
     indigo=lake((0.07, 0.10, 0.28), 0.02),                     # indigo and Vandyke brown: the grainer's glazes,
     vandyke=lake((0.24, 0.13, 0.07), 0.02),                    # clear as stained varnish, with no body at all
     black=body((0.045, 0.045, 0.05), 0.8),                     # ivory black
+    # the faience painter's stains (faience.py): metal oxides fired into tin glaze, clear as coloured glass
+    zaffre=lake((0.20, 0.33, 0.72), 0.02),                     # cobalt
+    copper=lake((0.20, 0.62, 0.42), 0.02),
+    antimony=lake((0.96, 0.80, 0.22), 0.04),                   # Naples yellow
+    rust=lake((0.86, 0.42, 0.14), 0.03),                       # iron
+    manganese=lake((0.42, 0.24, 0.34), 0.02),
+    rose=lake((0.86, 0.40, 0.52), 0.02),                       # purple of Cassius: the pink that is made from gold
     medium=(np.array([0.004, 0.012, 0.035]), np.zeros(3)),     # megilp: thins a paint, and is a shade amber
 )
 

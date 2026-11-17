@@ -4,8 +4,8 @@ Everything writes relief into scene.tool (dents are negative) and roughness into
 scene.leaf_rough, and only where leaf is laid, so paint put afterwards wipes it."""
 import numpy as np
 
-from noise import smoothstep
-import raster
+from .noise import smoothstep
+from . import raster
 
 
 def _cup(r):

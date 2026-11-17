@@ -2,8 +2,8 @@
 import numpy as np
 from PIL import Image
 
-from noise import C, fbm, smoothstep, mix, voronoi
-from raster import blur
+from .noise import C, fbm, smoothstep, mix, voronoi
+from .raster import blur
 
 BOLE = C(.55, .22, .15)       # red clay under gilding: shows where the leaf has rubbed through
 
@@ -42,6 +42,8 @@ def bake(p):
     height = (p.height * fx.get('relief', 1.0) + p.surface * fx.get('weave_relief', 0.3)
               + sc.tool * fx.get('tool_relief', 0.5) - 0.8 * crack)
     gy, gx = np.gradient(blur(height, 0.7))
+    if sc.tilt is not None:
+        gx, gy = gx + sc.tilt[..., 0], gy + sc.tilt[..., 1]
     inv = 1.0 / np.sqrt(gx * gx + gy * gy + 1.0)
     normal = np.stack([-gx * inv, -gy * inv, inv], -1)       # x right, y down, z out of the panel
     rough = mix(fx.get('paint_rough', 0.70) + 0.04 * fbm(H, W, 8.0, rng, 3), sc.leaf_rough, metal)   # paint_rough: lacquered finishes
@@ -67,7 +69,8 @@ def preview(p, maps):
     sheen = np.clip(fx.get('spec', 0.05) * (ndh ** 80 - hv[2] ** 80), 0.0, None)
     out = maps['albedo'] * np.clip(diff, 0.4, 1.6)[..., None] + sheen[..., None]
     metal = maps['metal']
-    if metal.any():
+    glazed = fx.get('gloss', 0.0)
+    if metal.any() or glazed > 0:
         # Leaf is a mirror, so it shows the room. Seen from a camera at a finite distance the
         # reflection direction sweeps across the panel, which gives flat gold its broad bands of
         # light; tooled dents tip the normal and pick up sparkle from the softbox and lamp.
@@ -82,6 +85,8 @@ def preview(p, maps):
         box = np.exp(-((rx + 0.10) ** 2 + (ry + 0.16) ** 2) / 0.07 ** 2)     # a softbox up and left
         lobe = np.clip(rx * l[0] + ry * l[1] + rz * l[2], 0.0, 1.0) ** (6.0 + 150.0 * gloss * gloss)
         shine = 0.42 + 0.55 * broad + 0.8 * box * gloss ** 2 + (0.3 + 1.0 * gloss) * lobe
+        if glazed > 0:
+            out += (glazed * (0.1 * broad + box + 0.5 * lobe) * (1.0 - metal))[..., None]
         out = mix(out, maps['albedo'] * shine[..., None], metal)
     if maps['emit'].any():      # lit windows bloom a little, as they would at night in game
         lit = maps['albedo'] * maps['emit'][..., None]
@@ -94,19 +99,19 @@ def preview(p, maps):
     return np.clip(out, 0.0, 1.0)
 
 
-def _save(img, path):
+def save_png(img, path):
     Image.fromarray((np.clip(img, 0.0, 1.0) * 255.0 + 0.5).astype(np.uint8)).save(path)
 
 
-def _normal_rgb(n):
+def normal_rgb(n):
     return np.stack([0.5 + 0.5 * n[..., 0], 0.5 - 0.5 * n[..., 1], 0.5 + 0.5 * n[..., 2]], -1)
 
 
 def save_maps(maps, base):
-    _save(maps['albedo'], base + '_color.png')
-    _save(_normal_rgb(maps['normal']), base + '_normal.png')
-    _save(maps['rough'], base + '_rough.png')
-    _save(maps['metal'], base + '_metal.png')
-    _save(maps['ao'], base + '_ao.png')
+    save_png(maps['albedo'], base + '_color.png')
+    save_png(normal_rgb(maps['normal']), base + '_normal.png')
+    save_png(maps['rough'], base + '_rough.png')
+    save_png(maps['metal'], base + '_metal.png')
+    save_png(maps['ao'], base + '_ao.png')
     if maps['emit'].any():
-        _save(maps['emit'], base + '_selfillum.png')
+        save_png(maps['emit'], base + '_selfillum.png')

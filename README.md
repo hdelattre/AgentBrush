@@ -16,7 +16,7 @@ Create `my_scene.py` beside `run.py`. This swatch uses two regions with differen
 
 ```python
 import numpy as np
-from scenes import Scene
+from agentbrush import Scene
 
 
 def swatch(W=512):
@@ -37,3 +37,9 @@ python run.py swatch CEZANNE --pbr
 Open `output/swatch_cezanne.png` for the lit painting. The renderer also saves the flat reference and a full-resolution detail crop. With `--pbr` it writes albedo, normal, roughness, metalness, and ambient occlusion maps, plus an emission mask for scenes with lit regions.
 
 Use `--out DIRECTORY` to choose where to write the files. The optional `--width` and `--seed` flags pass `W` and `seed` keyword arguments to your builder, so include those parameters if you use the corresponding flags. The seed also controls stroke placement.
+
+## Using AgentBrush from another project
+
+Put the checkout on your Python import path. Your scene files and custom styles can live in your own project. To render a scene in memory, call `agentbrush.painter.paint(scene, style, seed)`, then pass the painting to `agentbrush.export.bake` for its texture maps and `agentbrush.export.preview` for a lit view.
+
+The package also includes faience stains on fired glaze, kintsugi joins, marbling on laid paper, weathered paint layers, and field-line drawings. Each technique module describes its scene inputs.

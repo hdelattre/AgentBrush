@@ -20,18 +20,32 @@ A picture can also be taken out of a wet glaze instead of put on (graining.py):
 a 'glaze' pass rubs one transparent paint over everything, the 'grain' passes
 after it comb, wipe and mottle it along the scene's figures, and it dries
 before the next pass of any other kind.
+
+And a picture can be faience (faience.py): on `surface='glaze'` each 'stain'
+pass brushes one stain's washes, touches and lines onto raw tin glaze, as the
+scene laid them out on a bench, and fires them in.
+
+Or it can be marbled (marbling.py): the scene works a bath of floating colour,
+and one 'pull' pass on `surface='laid'` lifts the print off it.
+
+Or weathered (weathering.py): a 'weather' pass lays flat coats of colour over
+the whole panel and rains on it, and the scene only says where the wax and the
+dams are.
 """
 import time
 from dataclasses import dataclass
 
 import numpy as np
 
-import graining
-from brush import render_strokes, clip_extent, make_bristles, make_streaks, canvas_weave, gesso, NPARAM
-from noise import mix
-from pigments import NPAINT, to_linear, to_display
-from raster import blur
-from scenes import Scene, LEAF
+from . import faience
+from . import graining
+from . import marbling
+from . import weathering
+from .brush import render_strokes, clip_extent, make_bristles, make_streaks, canvas_weave, gesso, NPARAM
+from .noise import mix
+from .pigments import NPAINT, to_linear, to_display
+from .raster import blur
+from .scenes import Scene, LEAF
 
 LUMA = np.array([0.3, 0.59, 0.11], np.float32)
 TOOLS = dict(brush=0.0, knife=1.0, blend=2.0)    # blend: a clean brush drawn through the wet paint, laying none
@@ -298,6 +312,10 @@ def paint(scene, style, seed=0, verbose=True):
     height = np.zeros((H, W), np.float32)
     if style.get('surface', 'canvas') == 'gesso':
         surface = gesso(H, W, rng)
+    elif style.get('surface') == 'glaze':
+        surface = faience.glaze(H, W, rng)
+    elif style.get('surface') == 'laid':
+        surface = marbling.laid(H, W, rng)
     else:
         surface = canvas_weave(H, W, style['weave_period'] * max(1.0, scene.W / 1400.0), rng)
     keep = (1.0 - work.leaf).astype(np.float32)
@@ -343,6 +361,15 @@ def paint(scene, style, seed=0, verbose=True):
             wet = graining.lay(palette.recipe(**P['paint']), work, P, scene.W, rng)
         elif P['kind'] == 'grain':
             graining.work(wet, work, P, scene.W, rng)
+        elif P['kind'] == 'stain':
+            # faience: one stain's washes, touches and lines brushed onto the raw glaze and fired into it
+            fired = faience.fire(canvas, height, palette.recipe(**P['paint']), work, P, scene.W, rng)
+        elif P['kind'] == 'pull':
+            # marbling: the sheet laid once on the bath the scene worked, and lifted with the whole picture on it
+            fired = marbling.pull(canvas, height, palette, work, P, scene.W, rng)
+        elif P['kind'] == 'weather':
+            # weathering: flat coats of colour stood out in the rain, the picture cut by where the water ran
+            fired = weathering.weather(canvas, height, work, P, scene.W, rng, palette is not None)
         else:
             batch = plan_lines([l for l in work.lines if l['group'] == P['group']], rng)
             if batch is not None and palette is not None:
@@ -350,7 +377,7 @@ def paint(scene, style, seed=0, verbose=True):
                 under = canvas[np.clip(mid[:, 1].astype(np.int64), 0, H - 1), np.clip(mid[:, 0].astype(np.int64), 0, W - 1)]
                 loads = palette.load(batch[3], under, 0.75 * float(np.median(batch[2][:, 1])), rng, P.get('glaze', 0.0),
                                      P.get('cover', 0.0), P.get('streak', 0.0), P.get('streak_to'))
-        count = 0
+        count = fired if P['kind'] in ('stain', 'pull', 'weather') else 0
         if batch is not None:
             count = batch[1].size - 1
             cols = batch[3] if palette is None else to_linear(batch[3]).astype(np.float32)
